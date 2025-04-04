@@ -1,0 +1,86 @@
+diff --git a/Makefile b/Makefile
+index f8c820e..5524944 100644
+--- a/Makefile
++++ b/Makefile
+@@ -134,6 +134,7 @@ UPROGS=\
+ 	$U/_mkdir\
+ 	$U/_rm\
+ 	$U/_sh\
++	$U/_sleep\
+ 	$U/_stressfs\
+ 	$U/_usertests\
+ 	$U/_grind\
+diff --git a/kernel/proc.c b/kernel/proc.c
+index 130d9ce..176f131 100644
+--- a/kernel/proc.c
++++ b/kernel/proc.c
+@@ -693,3 +693,19 @@ procdump(void)
+     printf("\n");
+   }
+ }
++uint64
++sys_isbackground(void)
++{
++  struct proc *p = myproc();
++  struct proc *pp;
++  
++  // Get parent process
++  pp = p->parent;
++  
++  // Check if parent is the shell (pid 2 in xv6)
++  if(pp && pp->pid == 2) {
++    return 0;  // Process is not in background
++  }
++  
++  return 1;  // Process is in background
++}
+diff --git a/kernel/syscall.c b/kernel/syscall.c
+index ed65409..617ee26 100644
+--- a/kernel/syscall.c
++++ b/kernel/syscall.c
+@@ -101,6 +101,7 @@ extern uint64 sys_unlink(void);
+ extern uint64 sys_link(void);
+ extern uint64 sys_mkdir(void);
+ extern uint64 sys_close(void);
++extern uint64 sys_isbackground(void);
+ 
+ // An array mapping syscall numbers from syscall.h
+ // to the function that handles the system call.
+@@ -126,6 +127,7 @@ static uint64 (*syscalls[])(void) = {
+ [SYS_link]    sys_link,
+ [SYS_mkdir]   sys_mkdir,
+ [SYS_close]   sys_close,
++[SYS_isbackground]   sys_isbackground,
+ };
+ 
+ void
+diff --git a/kernel/syscall.h b/kernel/syscall.h
+index bc5f356..f356704 100644
+--- a/kernel/syscall.h
++++ b/kernel/syscall.h
+@@ -20,3 +20,4 @@
+ #define SYS_link   19
+ #define SYS_mkdir  20
+ #define SYS_close  21
++#define SYS_isbackground 22
+diff --git a/user/user.h b/user/user.h
+index f16fe27..d680be3 100644
+--- a/user/user.h
++++ b/user/user.h
+@@ -22,6 +22,7 @@ int getpid(void);
+ char* sbrk(int);
+ int sleep(int);
+ int uptime(void);
++int isbackground(void);
+ 
+ // ulib.c
+ int stat(const char*, struct stat*);
+diff --git a/user/usys.pl b/user/usys.pl
+index 01e426e..46b183c 100755
+--- a/user/usys.pl
++++ b/user/usys.pl
+@@ -36,3 +36,4 @@ entry("getpid");
+ entry("sbrk");
+ entry("sleep");
+ entry("uptime");
++entry("isbackground");

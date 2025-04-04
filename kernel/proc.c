@@ -693,3 +693,19 @@ procdump(void)
     printf("\n");
   }
 }
+uint64
+sys_isbackground(void)
+{
+  struct proc *p = myproc();
+  struct proc *pp;
+  
+  // Get parent process
+  pp = p->parent;
+  
+  // Check if parent is the shell (pid 2 in xv6)
+  if(pp && pp->pid == 2) {
+    return 0;  // Process is not in background
+  }
+  
+  return 1;  // Process is in background
+}
